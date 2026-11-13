@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Monitor</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="auth-overlay" class="hidden">
+    <div class="auth-card">
+      <h2>🔐 Crypto Monitor</h2>
+      <p class="muted">Introduce la contraseña del panel</p>
+      <input type="password" id="auth-password" placeholder="Contraseña" autocomplete="current-password">
+      <button id="auth-submit" class="btn primary">Entrar</button>
+    </div>
+  </div>
+
+  <header>
+    <div class="brand">
+      <h1>📈 Crypto Monitor</h1>
+      <span id="mode-pill" class="pill running">● real</span>
+      <span id="engine-pill" class="pill stopped">○ parado</span>
+    </div>
+    <nav>
+      <button class="tab active" data-tab="dashboard">📊 Panel</button>
+      <button class="tab" data-tab="alerts">🔔 Alertas</button>
+      <button class="tab" data-tab="chart">📉 Gráfico</button>
+      <button class="tab" data-tab="settings">⚙️ Ajustes</button>
+      <button class="tab" data-tab="logs">📜 Logs</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="tab-dashboard" class="tab-page active">
+      <div id="price-cards" class="cards-grid"></div>
+      <div class="card">
+        <h3>Últimas alertas</h3>
+        <div id="recent-alerts"><p class="muted">Nada aún.</p></div>
+      </div>
+    </section>
+
+    <section id="tab-alerts" class="tab-page">
+      <div class="card">
+        <h3>Nueva alerta</h3>
+        <form id="rule-form" class="form-row">
+          <label>Activo
+            <select id="rule-symbol"></select>
+          </label>
+          <label>Condición
+            <select id="rule-kind"></select>
+          </label>
+          <label id="rule-value-label">Valor
+            <input type="number" id="rule-value" step="any" min="0" required>
+          </label>
+          <label>Cooldown (min)
+            <input type="number" id="rule-cooldown" value="30" min="1">
+          </label>
+          <button type="submit" class="btn primary">Crear alerta</button>
+        </form>
+        <p class="muted" id="rule-hint"></p>
+      </div>
+      <div class="card">
+        <h3>Reglas activas</h3>
+        <table id="rules-table">
+          <thead><tr><th>Activo</th><th>Condición</th><th>Cooldown</th><th>Disparada</th><th>Activa</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Alertas disparadas</h3>
+        <table id="alerts-table">
+          <thead><tr><th>Cuándo</th><th>Activo</th><th>Mensaje</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-chart" class="tab-page">
+      <div class="card">
+        <div class="chart-head">
+          <h3>Evolución del precio</h3>
+          <div class="chart-controls">
+            <select id="chart-symbol"></select>
+            <select id="chart-range">
+              <option value="6">6 h</option>
+              <option value="24" selected>24 h</option>
+              <option value="72">3 días</option>
+            </select>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="price-chart"></canvas></div>
+        <div id="chart-stats" class="chart-stats"></div>
+      </div>
+    </section>
+
+    <section id="tab-settings" class="tab-page">
+      <div class="card">
+        <h3>Motor</h3>
+        <div class="form-row">
+          <label>Intervalo de consulta (segundos)
+            <input type="number" id="poll-seconds" min="5">
+          </label>
+          <button id="btn-save-config" class="btn primary">Guardar</button>
+        </div>
+        <div id="engine-info" class="kv-grid"></div>
+      </div>
+      <div class="card">
+        <h3>Notificaciones Telegram</h3>
+        <form id="notify-form" class="form-col">
+          <label>Bot token
+            <input name="token" placeholder="123456:ABC-DEF..." autocomplete="off">
+          </label>
+          <label>Chat ID
+            <input name="chat_id" placeholder="Tu chat_id" autocomplete="off">
+          </label>
+          <label class="check"><input type="checkbox" name="enabled"> Activar notificaciones</label>
+          <button type="submit" class="btn primary">Guardar y probar</button>
+        </form>
+        <p class="muted">Crea un bot con @BotFather para el token y consulta @userinfobot para tu chat_id.</p>
+      </div>
+      <div class="card">
+        <h3>Añadir activo</h3>
+        <form id="asset-form" class="form-row">
+          <label>Símbolo (ej. ADAUSDT)
+            <input name="symbol" placeholder="ADAUSDT" required>
+          </label>
+          <label>Nombre (opcional)
+            <input name="name" placeholder="Cardano">
+          </label>
+          <button type="submit" class="btn primary">Añadir</button>
+        </form>
+        <div id="assets-manage" class="chips"></div>
+      </div>
+    </section>
+
+    <section id="tab-logs" class="tab-page">
+      <div class="card">
+        <div class="chart-head">
+          <h3>Registros</h3>
+          <select id="log-level">
+            <option value="">Todos</option>
+            <option value="info">Info</option>
+            <option value="alert">Alertas</option>
+            <option value="error">Errores</option>
+          </select>
+        </div>
+        <div id="logs"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toasts"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

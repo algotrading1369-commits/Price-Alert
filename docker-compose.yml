@@ -1,0 +1,33 @@
+services:
+  monitor:
+    build: .
+    restart: unless-stopped
+    environment:
+      WEB_PASSWORD: ${WEB_PASSWORD:-}
+      MOCK: ${MOCK:-0}
+      POLL_SECONDS: ${POLL_SECONDS:-15}
+      DATA_DIR: /data
+    ports:
+      - "8400:8400"
+    volumes:
+      - ./data:/data
+
+  caddy:
+    image: caddy:2
+    profiles: ["https"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - monitor
+
+volumes:
+  caddy_data:
+  caddy_config:
