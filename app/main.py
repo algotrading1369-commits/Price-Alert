@@ -101,6 +101,8 @@ class RuleUpdate(BaseModel):
 
 class ConfigIn(BaseModel):
     poll_seconds: int | None = None
+    digest_enabled: bool | None = None
+    digest_hour: int | None = None
 
 
 class NotifyIn(BaseModel):
@@ -120,6 +122,14 @@ def static_files(path: str):
     if not os.path.isfile(full):
         raise HTTPException(404)
     return FileResponse(full)
+
+
+@app.get("/sw.js")
+def service_worker():
+    full = os.path.join(WEB_DIR, "static", "sw.js")
+    if not os.path.isfile(full):
+        raise HTTPException(404)
+    return FileResponse(full, headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"})
 
 
 @app.get("/api/status")
@@ -143,7 +153,7 @@ def status():
 
 @app.get("/api/kinds")
 def kinds():
-    return {"kinds": [{"kind": k, "label": v} for k, v in RULE_KINDS.items()]}
+    return {"kinds": [{"kind": k, "label": v["label"], "value_label": v["value_label"]} for k, v in RULE_KINDS.items()]}
 
 
 @app.get("/api/assets")
@@ -162,11 +172,7 @@ def add_asset(payload: AssetIn):
         raise HTTPException(400, f"Símbolo no válido: {exc}")
     if not db.add_asset(symbol, payload.name.strip()):
         raise HTTPException(400, "Ese símbolo ya está en la lista")
-    try:
-        for point in engine.market.klines(symbol, interval="15m", limit=96):
-            db.add_price(symbol, point["ts"], point["price"], 0)
-    except Exception:
-        pass
+    engine.backfill(symbol)
     db.add_log("info", f"Activo añadido: {symbol}")
     bus.publish("log", level="info", message=f"Activo añadido: {symbol}")
     return {"ok": True, "price": info[symbol]["price"]}
@@ -236,14 +242,32 @@ def history(symbol: str, hours: float = 24, points: int = 400):
 
 @app.get("/api/config")
 def get_config():
-    return {"poll_seconds": engine.poll_interval(), "mock": engine.mock}
+    digest = db.get_setting("digest", {"enabled": True, "hour": 9})
+    return {
+        "poll_seconds": engine.poll_interval(),
+        "mock": engine.mock,
+        "digest": digest,
+    }
 
 
 @app.put("/api/config")
 def put_config(payload: ConfigIn):
     if payload.poll_seconds is not None:
         db.set_setting("poll_seconds", max(5, int(payload.poll_seconds)))
+    if payload.digest_enabled is not None or payload.digest_hour is not None:
+        digest = db.get_setting("digest", {"enabled": True, "hour": 9})
+        if payload.digest_enabled is not None:
+            digest["enabled"] = payload.digest_enabled
+        if payload.digest_hour is not None:
+            digest["hour"] = min(23, max(0, int(payload.digest_hour)))
+        db.set_setting("digest", digest)
     return {"ok": True}
+
+
+@app.post("/api/digest/test")
+def digest_test():
+    ok = engine.send_digest()
+    return {"ok": True, "telegram_sent": ok}
 
 
 @app.get("/api/notify")

@@ -62,7 +62,11 @@ class Database:
                     value TEXT NOT NULL
                 );
             """)
+            cols = [r[1] for r in self._conn.execute("PRAGMA table_info(prices)")]
+            if "volume" not in cols:
+                self._conn.execute("ALTER TABLE prices ADD COLUMN volume REAL NOT NULL DEFAULT 0")
             self._conn.commit()
+
 
     def add_asset(self, symbol, name=""):
         with self._lock:
@@ -94,13 +98,30 @@ class Database:
             row = self._conn.execute("SELECT * FROM assets WHERE id=?", (asset_id,)).fetchone()
             return dict(row) if row else None
 
-    def add_price(self, symbol, ts, price, change_24h):
+    def add_price(self, symbol, ts, price, change_24h, volume=0.0):
         with self._lock:
             self._conn.execute(
-                "INSERT INTO prices(symbol, ts, price, change_24h) VALUES(?, ?, ?, ?)",
-                (symbol, ts, price, change_24h),
+                "INSERT INTO prices(symbol, ts, price, change_24h, volume) VALUES(?, ?, ?, ?, ?)",
+                (symbol, ts, price, change_24h, volume),
             )
             self._conn.commit()
+
+    def hourly_closes(self, symbol, hours):
+        import time
+
+        since = time.time() - hours * 3600
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT bucket, price FROM (
+                    SELECT CAST(ts/3600 AS INTEGER)*3600 AS bucket, ts, price,
+                           ROW_NUMBER() OVER (PARTITION BY CAST(ts/3600 AS INTEGER)*3600 ORDER BY ts DESC) AS rn
+                    FROM prices WHERE symbol=? AND ts>?
+                ) WHERE rn=1 ORDER BY bucket ASC
+                """,
+                (symbol, since),
+            ).fetchall()
+            return [dict(r) for r in rows]
 
     def price_before(self, symbol, ts):
         with self._lock:

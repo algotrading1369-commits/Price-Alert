@@ -44,5 +44,5 @@ class MockMarket:
         now = time.time()
         for i in range(limit, 0, -1):
             price = max(price * (1 + random.gauss(0, 0.004)), 0.0001)
-            out.append({"ts": now - i * 900, "price": price})
+            out.append({"ts": now - i * 900, "price": price, "volume": random.uniform(1e5, 5e7)})
         return out

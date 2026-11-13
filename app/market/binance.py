@@ -50,4 +50,4 @@ class BinanceClient:
 
     def klines(self, symbol, interval="15m", limit=96):
         data = self._get("/api/v3/klines", {"symbol": symbol, "interval": interval, "limit": limit})
-        return [{"ts": k[0] / 1000.0, "price": float(k[4])} for k in data]
+        return [{"ts": k[0] / 1000.0, "price": float(k[4]), "volume": float(k[7])} for k in data]

@@ -214,12 +214,22 @@ async function refreshKinds() {
 
 function updateRuleHint() {
   const kind = $("#rule-kind").value;
-  const isPrice = kind === "above" || kind === "below";
-  $("#rule-value-label").childNodes[0].textContent = isPrice ? "Precio objetivo " : "% de cambio ";
+  const meta = state.kinds.find((k) => k.kind === kind);
+  const label = $("#rule-value-label");
+  const input = $("#rule-value");
+  if (meta && meta.value_label) {
+    label.classList.remove("hidden");
+    label.childNodes[0].textContent = meta.value_label + " ";
+    input.required = true;
+  } else {
+    label.classList.add("hidden");
+    input.required = false;
+  }
   const asset = state.assets.find((a) => a.symbol === $("#rule-symbol").value);
+  const isPrice = kind === "above" || kind === "below";
   $("#rule-hint").textContent = isPrice
     ? (asset && asset.price != null ? `Precio actual de ${asset.symbol}: ${fmtPrice(asset.price)}` : "")
-    : "Para las alertas de porcentaje, el valor es tanto desencadenante como umbral (ej. 3 = 3%).";
+    : "";
 }
 
 $("#rule-kind").addEventListener("change", updateRuleHint);
@@ -234,7 +244,7 @@ $("#rule-form").addEventListener("submit", async (ev) => {
       body: JSON.stringify({
         symbol: $("#rule-symbol").value,
         kind: $("#rule-kind").value,
-        value: parseFloat($("#rule-value").value),
+        value: parseFloat($("#rule-value").value) || 1,
         cooldown_min: parseInt($("#rule-cooldown").value) || 30,
       }),
     });
@@ -322,6 +332,8 @@ async function refreshSettings() {
     const [cfg, assetsData] = await Promise.all([api("/api/config"), api("/api/assets")]);
     state.assets = assetsData.assets;
     $("#poll-seconds").value = cfg.poll_seconds;
+    $("#digest-enabled").checked = cfg.digest ? cfg.digest.enabled !== false : true;
+    $("#digest-hour").value = cfg.digest && cfg.digest.hour != null ? cfg.digest.hour : 9;
     const s = state.status || {};
     $("#engine-info").innerHTML = `
       <span class="k">Modo</span><span>${cfg.mock ? "Demo (simulado)" : "Real (Binance)"}</span>
@@ -352,6 +364,27 @@ $("#btn-save-config").addEventListener("click", async () => {
       body: JSON.stringify({ poll_seconds: parseInt($("#poll-seconds").value) || 15 }),
     });
     toast("Configuración guardada ✓", "success");
+  } catch (e) { toast("Error: " + e.message, "error"); }
+});
+
+$( "#btn-save-digest").addEventListener("click", async () => {
+  try {
+    await api("/api/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        digest_enabled: $("#digest-enabled").checked,
+        digest_hour: parseInt($("#digest-hour").value) || 9,
+      }),
+    });
+    toast("Resumen diario guardado ✓", "success");
+  } catch (e) { toast("Error: " + e.message, "error"); }
+});
+
+$("#btn-test-digest").addEventListener("click", async () => {
+  try {
+    const r = await api("/api/digest/test", { method: "POST" });
+    toast(r.telegram_sent ? "Resumen enviado a Telegram ✓" : "Resumen generado (Telegram no configurado: míralo en Logs)", r.telegram_sent ? "success" : "info");
   } catch (e) { toast("Error: " + e.message, "error"); }
 });
 
@@ -431,9 +464,16 @@ function connectStream() {
         }
       }
       if (data.kind === "alert") {
-        toast(data.message.replace(/<[^>]+>/g, ""), "alert", 8000);
+        const text = data.message.replace(/<[^>]+>/g, "");
+        toast(text, "alert", 8000);
+        if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+          new Notification("Crypto Monitor", { body: text, tag: "monitor-alert" });
+        }
         refreshStatus();
         if ($("#tab-alerts").classList.contains("active")) refreshAlertsTab();
+      }
+      if (data.kind === "digest") {
+        toast("📊 Resumen diario generado (míralo en Logs)", "info");
       }
       if (data.kind === "log") refreshStatus();
     } catch (e) { console.error(e); }
@@ -451,6 +491,24 @@ function refreshAll() {
   refreshSettings();
   refreshLogs();
 }
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
+
+$("#btn-push").addEventListener("click", async () => {
+  if (!("Notification" in window)) {
+    toast("Tu navegador no soporta notificaciones", "error");
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm === "granted") {
+    toast("Notificaciones activadas 🔔", "success");
+    new Notification("Crypto Monitor", { body: "Te avisaré aquí cuando salte una alerta." });
+  } else {
+    toast("Notificaciones bloqueadas en el navegador", "error");
+  }
+});
 
 refreshAll();
 setInterval(refreshStatus, 10000);

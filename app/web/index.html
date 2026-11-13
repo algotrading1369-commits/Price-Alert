@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crypto Monitor</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#0b0e14">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -28,6 +31,7 @@
       <button class="tab" data-tab="chart">📉 Gráfico</button>
       <button class="tab" data-tab="settings">⚙️ Ajustes</button>
       <button class="tab" data-tab="logs">📜 Logs</button>
+      <button id="btn-push" class="btn">🔔 Push</button>
     </nav>
   </header>
 
@@ -104,6 +108,18 @@
           <button id="btn-save-config" class="btn primary">Guardar</button>
         </div>
         <div id="engine-info" class="kv-grid"></div>
+      </div>
+      <div class="card">
+        <h3>Resumen diario</h3>
+        <div class="form-row">
+          <label class="check"><input type="checkbox" id="digest-enabled"> Activar resumen diario por Telegram</label>
+          <label>Hora (0-23)
+            <input type="number" id="digest-hour" min="0" max="23" value="9">
+          </label>
+          <button id="btn-save-digest" class="btn primary">Guardar</button>
+          <button id="btn-test-digest" class="btn">Enviar ahora (prueba)</button>
+        </div>
+        <p class="muted">Cada día a esa hora te llega por Telegram el estado de tus activos (24h y 7d) y las alertas del último día.</p>
       </div>
       <div class="card">
         <h3>Notificaciones Telegram</h3>

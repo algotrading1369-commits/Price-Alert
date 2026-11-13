@@ -66,8 +66,23 @@ cat /opt/crypto-monitor/.env  # ver la contraseña guardada
 | Baja un % en 1h | cambio de la última hora ≤ −valor |
 | Sube un % en 24h | cambio 24h ≥ valor |
 | Baja un % en 24h | cambio 24h ≤ −valor |
+| RSI por debajo de | RSI(14) horario ≤ valor (sobreventa, ej. 30) |
+| RSI por encima de | RSI(14) horario ≥ valor (sobrecompra, ej. 70) |
+| Cruce de medias al alza | MA24h cruza por encima de la MA72h |
+| Cruce de medias a la baja | MA24h cruza por debajo de la MA72h |
+| Rompe Bollinger superior | precio supera la banda superior (20h, 2σ) |
+| Rompe Bollinger inferior | precio cae bajo la banda inferior (20h, 2σ) |
+| Volumen ≥ X× la media | volumen horario ≥ X veces la media de 24h |
 
-El **cooldown** evita repetir la misma alerta hasta que pasen esos minutos.
+Los indicadores se calculan sobre cierres horarios. Al añadir un activo se descargan 14 días de velas horarias de Binance, así funcionan desde el primer minuto. El **cooldown** evita repetir la misma alerta hasta que pasen esos minutos.
+
+## Resumen diario
+
+Cada día a la hora que elijas (por defecto 9:00) te llega por Telegram un resumen: precio de cada activo con su cambio 24h y 7d, y las alertas disparadas en el último día. Se configura en Ajustes, con botón de prueba para enviarlo al momento.
+
+## Instalable como app (PWA) y notificaciones push
+
+El panel es una PWA: desde el navegador (Chrome/Edge) puedes "Instalar app" y aparecerá con icono propio en el móvil o escritorio. El botón 🔔 Push activa las notificaciones del navegador: si tienes la pestaña en segundo plano, las alertas te llegan como notificación del sistema.
 
 ## Variables de entorno
 
